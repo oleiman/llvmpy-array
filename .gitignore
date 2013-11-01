@@ -34,3 +34,15 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# emacs
+*~
+
+# llvm
+*.bc
+*.o
+*.s
+
+# test data
+*.arr
+writearrays
