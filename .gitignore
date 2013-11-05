@@ -46,3 +46,4 @@ nosetests.xml
 # test data
 *.arr
 writearrays
+run-bitcode
