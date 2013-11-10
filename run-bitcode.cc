@@ -46,12 +46,27 @@ int main()
     if (!m) cout << "fucker\n";
     
     ExecutionEngine *ee = ExecutionEngine::create(m);
-    Function* func = ee->FindFunctionNamed("sum");
+    Function* write = ee->FindFunctionNamed("write_0");
+    Function* sum1 = ee->FindFunctionNamed("sumA_0");
+    Function* sum2 = ee->FindFunctionNamed("sumA_1");
       
-    typedef int (*PFN)(const char* a1, const char* a2, int size1, int size2);
-    PFN pfn = reinterpret_cast<PFN>(ee->getPointerToFunction(func));
-    int ret = pfn(string("foo.arr").c_str(), string("bar.arr").c_str(), 10, 12);
-    cout << "foo + bar: " << ret << endl;
+    typedef int (*PFN)(const void* a1, const void* a2, void *a3);
+
+    if (write) {
+      PFN write_fn = reinterpret_cast<PFN>(ee->getPointerToFunction(sum1));
+      int write_ret = write_fn(NULL, NULL, NULL);
+      cout << write_ret << endl;
+    }
+
+    PFN pfn1 = reinterpret_cast<PFN>(ee->getPointerToFunction(sum1));
+    int ret1  = pfn1(NULL, NULL, NULL);
+    
+
+    PFN pfn2 = reinterpret_cast<PFN>(ee->getPointerToFunction(sum2));
+    int ret2 = pfn2(NULL, NULL, NULL);
+    
+    cout << "foo + bar: " << ret1 + ret2 << endl;
+    // cout << "foo + bar: " << ret1 << endl;
     
     delete ee;
 }

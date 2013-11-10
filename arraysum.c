@@ -5,16 +5,19 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-extern int sum(char*, char*, int, int);
-int sumA(char*, int);
+/* extern int sum(void*, void*, void*); */
+extern int sumA_1(void*, void*, void*);
+extern int sumA_2(void*, void*, void*);
 
-int sum(char *a1, char *a2, int size1, int size2) 
-{
-   return sumA(a1, size1) + sumA(a2, size2);
-}
+/* int sum(void* a, void *b, void * c)  */
+/* { */
+/*    return sumA_1 */
+/* } */
 
-int sumA(char *a, int size) 
+int sumA_0(void* q, void* r, void* s)
 {
+   int size = 28;
+   char *a = "foo.arr";
    int res = 0;
    int fd = open(a, O_RDONLY);
    int *buf = calloc(size, sizeof(int));
@@ -27,3 +30,21 @@ int sumA(char *a, int size)
    }
    return res;
 }
+
+int sumA_1(void* q, void* b, void* c)
+{
+   int size = 8;
+   char *a = "bar.arr";
+   int res = 0;
+   int fd = open(a, O_RDONLY);
+   int *buf = calloc(size, sizeof(int));
+   ssize_t bytes_read = read(fd, buf, size * sizeof(int));
+   if (bytes_read < size * sizeof(int)) {
+      fprintf(stderr, "incorrect size given for %s [%d]\n", a, size);
+   }
+   for (int i = 0; i < size; i++) {
+      res += buf[i];
+   }
+   return res;
+}
+

@@ -6,7 +6,7 @@ LLVM_CXXFLAGS=$(shell llvm-config --cxxflags)
 LLVM_LDFLAGS=$(shell llvm-config --ldflags)
 LLVM_LIBS=$(shell llvm-config --libs)
 
-all: arraysum.bc run-bitcode writearrays ceph.bc
+all: get_libs.s arraysum.bc run-bitcode writearrays ceph.bc 
 
 arraysum.bc: arraysum.s
 	llvm-as arraysum.s -o arraysum.bc
@@ -17,13 +17,15 @@ arraysum.s: arraysum.c
 ceph.bc: ceph.s
 	llvm-as ceph.s -o ceph.bc
 
-ceph.s: ceph.py ceph_client.py
+ceph.s: ceph_class.py ceph_client.py
 	ceph_client.py
+
+get_libs.s: get_libs.cc
+	clang++ -Wall -S -emit-llvm get_libs.cc
 
 writearrays: writearrays.c
 	gcc writearrays.c -o writearrays -std=gnu99
-	./writearrays
-
+	# ./writearrays
 run-bitcode: run-bitcode.cc
 	$(CXX) -rdynamic $(LLVM_CXXFLAGS) $(LLVM_LDFLAGS) -DV3 $< -o $@ $(LLVM_LIBS) $(LIBS) -fexceptions
 
