@@ -48,3 +48,4 @@ nosetests.xml
 writearrays
 run-bitcode
 *.npy
+manifest

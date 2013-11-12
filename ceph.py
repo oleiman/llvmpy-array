@@ -64,12 +64,14 @@ class CephArray:
 
     array_count = 0
     module = Module.new('ceph')
+    manifest = []
     
     def __init__(self, oid, dims, array = None):
         self.oid = oid
         self.dims = dims
         self.array = array
         self.func_n = CephArray.array_count
+        self.contents = []
         CephArray.array_count += 1
 
     def _make_type(self, ndim, cb):
@@ -159,10 +161,12 @@ class CephArray:
                     self._fold_loop(f, init, ndim-1, buf[q], cb)
                     q += cb.one
 
+    def _gen_handle(self, name):
+        return "%s_%d" % (name, self.func_n)
+
     def _gen_fold(self, module, func, init, name):
         ty_fold = Type.function(C.int, [C.void_p, C.void_p, C.void_p])
-        self.fold_name = "%s_%d" % (name, self.func_n)
-        f_fold  = module.add_function(ty_fold, self.fold_name)
+        f_fold  = module.add_function(ty_fold, self._gen_handle(name))
 
         cb = CBuilderOSD(f_fold)
 
@@ -188,8 +192,7 @@ class CephArray:
 
     def _gen_write(self, module):
         ty_write = Type.function(C.int, [C.void_p, C.void_p, C.void_p])
-        self.write_name = "write_%d" % self.func_n
-        f_write = module.add_function(ty_write, self.write_name)
+        f_write = module.add_function(ty_write, self._gen_handle("write"))
         cb = CBuilderOSD(f_write)
 
         buf = self._allocate_write_buf(len(self.dims), cb)
@@ -199,19 +202,35 @@ class CephArray:
         cb.close()
 
     def fold(self, f, init, name):
-        self._gen_fold(CephArray.module, f, init, name)
+        CephArray.add_to_manifest(self.oid, self._gen_handle(name))
+        if name not in self.contents:
+            self._gen_fold(CephArray.module, f, init, name)
+            self.contents.append(name)
 
     def write(self):
-        self._gen_write(CephArray.module)
+        CephArray.add_to_manifest(self.oid, self._gen_handle("write"))
+        if "write" not in self.contents:
+            self._gen_write(CephArray.module)
+            self.contents.append("write")
 
     @classmethod
     def execute(cls):
         cls.module.verify()
-        f = open("ceph.s", 'w')
+        f = open("ceph.s", 'wb')
         module_str = str(cls.module)
         f.write(module_str)
-        # generate manifest here
+        cls.write_manifest()
         # ship off to osd with the IR
+
+    @classmethod
+    def write_manifest(cls):
+        f = open("manifest", 'wb')
+        for req in cls.manifest:
+            f.write(req)
+            
+    @classmethod
+    def add_to_manifest(cls, oid, handle):
+        CephArray.manifest.append("%s,%s\n" % (oid, handle))
 
     @classmethod
     def from_npy_file(cls, oid, filename):

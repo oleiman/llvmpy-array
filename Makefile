@@ -17,7 +17,7 @@ arraysum.s: arraysum.c
 ceph.bc: ceph.s
 	llvm-as ceph.s -o ceph.bc
 
-ceph.s: ceph_class.py ceph_client.py
+ceph.s: ceph.py ceph_client.py
 	ceph_client.py
 
 get_libs.s: get_libs.cc
