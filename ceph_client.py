@@ -9,7 +9,7 @@ np.save("a1",
          [1,1,1,1,1,1,1],
          [1,1,1,1,1,1,1],
          [1,1,1,1,1,1,1]
-        ])
+        ] * 100)
 np.save("a2",
         [
          [
@@ -26,18 +26,24 @@ np.save("a2",
          ]
         ])
 
-add = lambda x,y: x + y
-mul = lambda x,y: x * y
+def add(x,y):
+    return x + y
 
-a = ceph.CephArray.from_npy_file("foo", "a1.npy")
+def mul(x,y):
+    return x * y
+
+ceph.Array.config('/home/oren/code/ceph-private/src/ceph.conf')
+
+a = ceph.Array("bar", "a1.npy")
 a.write()
+a.fold(add, 0)
 
-b = ceph.CephArray.from_npy_file("bar", "a2.npy")
-b.write()
+print ceph.Array.execute()
 
-a.fold(add, 0, "sum")
-b.fold(mul, 1, "mul")
+b = ceph.Array("bar")
 
-ceph.CephArray.execute()
+b.fold(mul, 1)
+
+print ceph.Array.execute()
 
 
