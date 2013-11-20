@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import select 
 import socket 
 import sys 
@@ -62,7 +64,6 @@ class Client(threading.Thread):
         threading.Thread.__init__(self) 
         self.client = client 
         self.address = address
-        print self.address
         self.requests = []
         self.methods = []
         self.size = 2**31 - 1
@@ -82,10 +83,7 @@ class Client(threading.Thread):
                         dims = req[2]
                         arr = np.load(req[3]) if req[3] else None
                         if Client.clients[self.address].get(oid) is None:
-                            print "instantiating the ceph array"
                             Client.clients[self.address][oid] = CephArray(oid, dims, arr)
-                            print "done instantiating the ceph array"
-                            print ""
 
                     elif action == 'fold':
                         oid = req[1]
@@ -94,10 +92,7 @@ class Client(threading.Thread):
                         init = req[3]
                         name = req[4]
                         func = types.FunctionType(func, globals())
-                        print 'generating the fold'
                         handle = a._gen_fold(CephArray.module, func, init, name)
-                        print 'done generating the fold'
-                        print ''
                         self.requests.append([a.oid, handle])
 
                     elif action == 'write':
@@ -107,15 +102,11 @@ class Client(threading.Thread):
                         self.requests.append([a.oid, handle])
 
                     elif action == 'exec':
-                        print "EXECUTION BEGINS HERE:"
                         CephArray.module.verify()
                         irstr = str(CephArray.module)
                         responses = []
                         for req in self.requests:
-                            print req
                             responses.append(CephArray.cls_client.llvm_exec(irstr, req[0], req[1]))
-                            print "done with %s" % req
-                            print ''
                         self.client.send(pickle.dumps(responses))
 
             else: 
