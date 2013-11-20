@@ -81,6 +81,10 @@ class Client(threading.Thread):
                     if action == 'init':
                         oid = req[1]
                         dims = req[2]
+                        
+                        # TODO: keeping in mind that the numpy file *must* be
+                        #       accessible from wherever the server is running
+                        #       ** for now
                         arr = np.load(req[3]) if req[3] else None
                         if Client.clients[self.address].get(oid) is None:
                             Client.clients[self.address][oid] = CephArray(oid, dims, arr)

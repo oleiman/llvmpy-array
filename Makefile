@@ -2,6 +2,14 @@ CXX=clang++
 CC=clang
 LIBS=-ldl -lpthread
 
+SRC = ./src
+CLS_LLVM_PRE = ./src/cls_llvmpy
+CLS_LLVM_SRC = $(CLS_LLVM_PRE)/*.cc
+CLS_LLVM_SETUP = $(CLS_LLVM_PRE)/setup.py
+
+SERVER = $(SRC)/array_server.py
+CLIENT = $(SRC)/ceph_client.py
+
 LLVM_CXXFLAGS=$(shell llvm-config --cxxflags)
 LLVM_LDFLAGS=$(shell llvm-config --ldflags)
 LLVM_LIBS=$(shell llvm-config --libs)
@@ -11,18 +19,18 @@ all: llvm_client.so
 run: run_server run_client
 
 run_server:
-	./array_server.py
+	$(SERVER)
 run_client:
 	sleep 1
-	./ceph_client.py
+	$(CLIENT)
 
 ceph_client.py: ceph.py 
 
 array_server.py: ceph_array.py
 
-llvm_client.so: cls_llvmpy_client.cc setup.py
-	python setup.py build
-	cp build/lib.*/llvm_client.so .
+llvm_client.so: $(CLS_LLVM_SRC) $(CLS_LLVM_SETUP)
+	python $(CLS_LLVM_SETUP) build
+	cp $(CLS_LLVM_PRE)/build/lib.*/llvm_client.so $(SRC)
 
 clean:
 	-rm *.so
