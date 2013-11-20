@@ -40,9 +40,10 @@ a.fold(add, 0)
 
 print ceph.Array.execute()
 
-b = ceph.Array("bar")
+b = ceph.Array("baz", "a2.npy")
+b.write()
 
-b.fold(mul, 1)
+b.fold(mul, 2)
 
 print ceph.Array.execute()
 
