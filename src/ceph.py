@@ -1,3 +1,5 @@
+from llvm.core import *
+
 import rados
 import struct
 import socket
@@ -14,14 +16,25 @@ class Array:
 
     def __init__(self, oid, filename = None):
         self.oid = oid
-        self._from_npy_file(filename) if filename else self._no_file()
+        self._from_file(filename) if filename else self._no_file()
 
     def fold(self, f, init):
         func_string = marshal.dumps(f.func_code)
-        Array.manifest.append(['fold', self.oid, func_string, init, f.__name__])
+        Array.manifest.append({
+                'action': 'fold', 
+                'oid': self.oid, 
+                'func': func_string, 
+                'init': init, 
+                })
         
     def write(self):
-        Array.manifest.append(['write', self.oid])
+        try:
+            self._get_dims()
+        except:
+            Array.manifest.append({
+                    'action': 'write', 
+                    'oid': self.oid
+                    })
 
     @classmethod
     def config(cls, config_file):
@@ -34,7 +47,7 @@ class Array:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host,port))
         size = 2**31 - 1
-        cls.manifest.append(['exec'])
+        cls.manifest.append({'action':'exec'})
         s.send(pickle.dumps(cls.manifest))
         data = pickle.loads(s.recv(size))
         s.close()
@@ -42,13 +55,22 @@ class Array:
         return data
         
     # TODO: smooth out the dims getting, which is now unnecessary client-side
-    def _from_npy_file(self, filename):
+    def _from_file(self, filename):
         dims = np.load(filename).shape
-        Array.manifest.append(['init', self.oid, dims, filename])
+        Array.manifest.append({
+                'action': 'init', 
+                'oid': self.oid, 
+                'dims': dims, 
+                'file': filename
+                })
         
     def _no_file(self):
         dims = self._get_dims()
-        Array.manifest.append(['init', self.oid, dims, None])
+        Array.manifest.append({
+                'action': 'init', 
+                'oid': self.oid, 
+                'dims': dims, 
+                })
 
     def _get_dims(self):
         cluster = rados.Rados(conffile=Array.ceph_config)

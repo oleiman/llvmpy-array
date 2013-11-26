@@ -14,9 +14,13 @@ LLVM_CXXFLAGS=$(shell llvm-config --cxxflags)
 LLVM_LDFLAGS=$(shell llvm-config --ldflags)
 LLVM_LIBS=$(shell llvm-config --libs)
 
-all: llvm_client.so
+all: llvm_client.so arrays
 
-run: run_server run_client
+test: run_server run_client 
+
+arrays:
+	python $(SRC)/gen_arrays.py
+	cp *.npy $(SRC)
 
 run_server:
 	$(SERVER)
@@ -33,4 +37,4 @@ llvm_client.so: $(CLS_LLVM_SRC) $(CLS_LLVM_SETUP)
 	cp $(CLS_LLVM_PRE)/build/lib.*/llvm_client.so $(SRC)
 
 clean:
-	-rm *.so
+	-rm $(CLS_LLVM_PRE)/build/lib.*/llvm_client.so *.npy $(SRC)/*.npy

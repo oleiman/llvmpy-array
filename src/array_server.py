@@ -9,13 +9,14 @@ import pickle
 import marshal
 import types
 import numpy as np
+import time
 
 from ceph_array import CephArray
 
 class Server: 
     def __init__(self): 
         self.host = '' 
-        self.port = 50000 
+        self.port = 50000
         self.backlog = 5 
         self.size = 2**31 - 1
         self.server = None 
@@ -76,41 +77,36 @@ class Client(threading.Thread):
             if data:
                 manifest = pickle.loads(data)
                 for req in manifest:
-                    action = req[0]
+                    action = req.get('action')
+                    oid = req.get('oid')
 
                     if action == 'init':
-                        oid = req[1]
-                        dims = req[2]
-                        
+                        dims = req.get('dims')
+                        fname = req.get('file')
+
                         # TODO: keeping in mind that the numpy file *must* be
                         #       accessible from wherever the server is running
                         #       ** for now
-                        arr = np.load(req[3]) if req[3] else None
+                        arr = np.load(fname) if fname else None
                         if Client.clients[self.address].get(oid) is None:
                             Client.clients[self.address][oid] = CephArray(oid, dims, arr)
-
+ 
                     elif action == 'fold':
-                        oid = req[1]
                         a = Client.clients[self.address][oid]
-                        func = marshal.loads(req[2])
-                        init = req[3]
-                        name = req[4]
-                        func = types.FunctionType(func, globals())
-                        handle = a._gen_fold(CephArray.module, func, init, name)
-                        self.requests.append([a.oid, handle])
+                        func_code = marshal.loads(req.get('func'))
+                        func = types.FunctionType(func_code, globals())
+                        name = func.__name__
+                        init = req.get('init')
+                        handle = a._gen_fold(func, init, name)
+                        self.requests.append((a.oid, handle))
 
                     elif action == 'write':
-                        oid = req[1]
                         a = Client.clients[self.address][oid]
-                        handle = a._gen_write(CephArray.module)
-                        self.requests.append([a.oid, handle])
+                        handle = a._gen_write()
+                        self.requests.append((a.oid, handle))
 
                     elif action == 'exec':
-                        CephArray.module.verify()
-                        irstr = str(CephArray.module)
-                        responses = []
-                        for req in self.requests:
-                            responses.append(CephArray.cls_client.llvm_exec(irstr, req[0], req[1]))
+                        responses = CephArray.execute(self.requests, Client.clients[self.address])
                         self.client.send(pickle.dumps(responses))
 
             else: 
