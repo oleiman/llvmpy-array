@@ -18,24 +18,6 @@ class Array:
         self.oid = oid
         self._from_file(filename) if filename else self._no_file()
 
-    def fold(self, f, init):
-        func_string = marshal.dumps(f.func_code)
-        Array.manifest.append({
-                'action': 'fold', 
-                'oid': self.oid, 
-                'func': func_string, 
-                'init': init, 
-                })
-        
-    def write(self):
-        try:
-            self._get_dims()
-        except:
-            Array.manifest.append({
-                    'action': 'write', 
-                    'oid': self.oid
-                    })
-
     @classmethod
     def config(cls, config_file):
         cls.ceph_config = config_file
@@ -53,7 +35,7 @@ class Array:
         s.close()
         cls.manifest = []
         return data
-        
+
     # TODO: smooth out the dims getting, which is now unnecessary client-side
     def _from_file(self, filename):
         dims = np.load(filename).shape
@@ -92,3 +74,21 @@ class Array:
         ioctx.close()
         cluster.shutdown()
         return tuple(dims)
+
+    def fold(self, f, init):
+        func_string = marshal.dumps(f.func_code)
+        Array.manifest.append({
+                'action': 'fold', 
+                'oid': self.oid, 
+                'func': func_string, 
+                'init': init, 
+                })
+        
+    def write(self):
+        try:
+            self._get_dims()
+        except:
+            Array.manifest.append({
+                    'action': 'write', 
+                    'oid': self.oid
+                    })
