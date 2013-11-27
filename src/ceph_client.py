@@ -12,9 +12,9 @@ def mul(x,y):
 Array.config('/home/oren/code/ceph-private/src/ceph.conf')
 
 
-a = Array("foobarbazqux37", "a1.npy")
-a.write()
-# a = Array("someobject")
+# a = Array("foobarbazqux37", "a1.npy")
+# a.write()
+a = Array("foobarbazqux37")
 a.fold(add, 0)
 
 b = Array("baz", "a2.npy")

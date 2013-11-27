@@ -35,9 +35,51 @@ class CephArray:
         self.module = Module.new('ceph')
         self.methods = []
 
+    def _gen_handle(self, name):
+        return "%s_%s" % (name, self.oid)
 
-    def _make_type(self, ndim, cb):
-        return C.int if ndim == 1 else C.pointer(self._make_type(ndim-1, cb))
+    def _make_array_type(self, ndim, cb):
+        return C.int if ndim == 1 else C.pointer(self._make_array_type(ndim-1, cb))
+
+    def _fold_loop(self, f, init, cb):
+        hctx = cb.args[0]
+        raw_length = reduce(lambda x,y: x*y, self.dims, 1)
+        length = cb.constant(C.int, raw_length)
+
+        int_size_bytes = cb.sizeof(C.int).cast(C.int)
+        read_size = length * int_size_bytes
+
+        buf = cb.var(C.pointer(C.int))
+        buf_p = buf.reference().cast(C.char_pp)
+
+        dltmp = cb.var(C.int)
+        off = cb.var(C.int).assign(cb.zero)
+        cb.cls_read(hctx, off, read_size, buf_p, dltmp.reference())
+
+        i = cb.var(C.int).assign(cb.zero)
+        with cb.loop() as loop:
+            with loop.condition() as setcond:
+                setcond(i < (dltmp / int_size_bytes))
+            with loop.body():
+                init.assign(f(init, buf[i]))
+                i += cb.one
+
+    def _gen_fold(self, func, init, name):
+        handle = self._gen_handle(name)
+        if handle in self.methods:
+            return handle
+        self.methods.append(handle)
+        ty_fold = Type.function(C.int, [C.void_p, C.void_p, C.void_p])
+        f_fold  = self.module.add_function(ty_fold, handle)
+
+        cb = CBuilderOSD(f_fold)
+        
+        res  = cb.var(C.int).assign(cb.constant(C.int, init))
+        self._fold_loop(func, res, cb)
+
+        cb.ret(res)
+        cb.close()
+        return handle
 
     def _write_dims(self, cb):
         hctx = cb.args[0]
@@ -71,54 +113,13 @@ class CephArray:
 
         return ret
 
-    def _fold_loop(self, f, init, cb):
-        hctx = cb.args[0]
-        raw_length = reduce(lambda x,y: x*y, self.dims, 1)
-        length = cb.constant(C.int, raw_length)
-
-        int_size_bytes = cb.sizeof(C.int).cast(C.int)
-        read_size = length * int_size_bytes
-
-        buf = cb.var(C.pointer(C.int))
-        buf_p = buf.reference().cast(C.char_pp)
-
-        dltmp = cb.var(C.int)
-        off = cb.var(C.int).assign(cb.zero)
-        cb.cls_read(hctx, off, read_size, buf_p, dltmp.reference())
-
-        i = cb.var(C.int).assign(cb.zero)
-        with cb.loop() as loop:
-            with loop.condition() as setcond:
-                setcond(i < (dltmp / int_size_bytes))
-            with loop.body():
-                init.assign(f(init, buf[i]))
-                i += cb.one
-
-    def _gen_handle(self, name):
-        return "%s_%s" % (name, self.oid)
-
-    def _gen_fold(self, func, init, name):
-        handle = self._gen_handle(name)
-        if handle in self.methods:
-            return handle
-        self.methods.append(handle)
-        ty_fold = Type.function(C.int, [C.void_p, C.void_p, C.void_p])
-        f_fold  = self.module.add_function(ty_fold, handle)
-
-        cb = CBuilderOSD(f_fold)
-        
-        res  = cb.var(C.int).assign(cb.constant(C.int, init))
-        self._fold_loop(func, res, cb)
-
-        cb.ret(res)
-        cb.close()
-        return handle
-
     def _gen_write(self):
         handle = self._gen_handle("write")
         if handle in self.methods:
             return handle
-        self.methods.append(handle)
+        else: 
+            self.methods.append(handle)
+
         ty_write = Type.function(C.int, [C.void_p, C.void_p, C.void_p])
         f_write = self.module.add_function(ty_write, handle)
         cb = CBuilderOSD(f_write)
