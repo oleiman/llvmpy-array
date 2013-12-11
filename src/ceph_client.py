@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from ceph import Array
+from ceph_array import CephArray
 import numpy as np
 
 def add(x,y):
@@ -9,18 +9,17 @@ def add(x,y):
 def mul(x,y):
     return x * y
 
-Array.config('/home/oren/code/ceph-private/src/ceph.conf')
+CephArray.config('/home/oren/code/ceph-private/src/ceph.conf', 'some_pool')
 
-
-# a = Array("foobarbazqux37", "a1.npy")
-# a.write()
-a = Array("foobarbazqux37")
+a = CephArray("test", "a1.npy")
+a.write()
+# a = CephArray("foobarbazqux37")
 a.fold(add, 0)
 
-b = Array("baz", "a2.npy")
+b = CephArray("baz", "a2.npy")
 b.write()
 
 b.fold(mul, 2)
 
-print Array.execute()
+print CephArray.execute()
 

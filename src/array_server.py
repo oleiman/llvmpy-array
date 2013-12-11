@@ -11,9 +11,9 @@ import types
 import numpy as np
 import time
 
-from ceph_array import CephArray
+from code_gen import ArrayCodeGen
 
-class Server: 
+class ArrayServer: 
     def __init__(self): 
         self.host = '' 
         self.port = 50000
@@ -89,7 +89,7 @@ class Client(threading.Thread):
                         #       ** for now
                         arr = np.load(fname) if fname else None
                         if Client.clients[self.address].get(oid) is None:
-                            Client.clients[self.address][oid] = CephArray(oid, dims, arr)
+                            Client.clients[self.address][oid] = ArrayCodeGen(oid, dims, arr)
  
                     elif action == 'fold':
                         a = Client.clients[self.address][oid]
@@ -106,7 +106,20 @@ class Client(threading.Thread):
                         self.requests.append((a.oid, handle))
 
                     elif action == 'exec':
-                        responses = CephArray.execute(self.requests, Client.clients[self.address])
+                        irstr = ArrayCodeGen.link(Client.clients[self.address])
+                        responses = []
+                        for req in self.requests:
+                            oid = req[0]
+                            func = req[1]
+                            a = Client.clients[self.address][oid]
+                            data = a.flatten()
+                            val = ArrayCodeGen.cls_client.llvm_exec(irstr, data, oid, func)
+                            responses.append({
+                                    'oid': oid,
+                                    'called': func, 
+                                    'return': val, 
+                                    'timestamp': time.ctime()
+                                    })
                         self.client.send(pickle.dumps(responses))
 
             else: 
@@ -114,5 +127,5 @@ class Client(threading.Thread):
                 running = 0 
 
 if __name__ == "__main__": 
-    s = Server() 
+    s = ArrayServer() 
     s.run()
