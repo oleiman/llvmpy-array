@@ -33,8 +33,8 @@ class ArrayCodeGen:
         self.module = Module.new('ceph')
         self.methods = []
 
-    def _gen_handle(self, name):
-        return "%s_%s" % (name, self.oid)
+    def _gen_handle(self, name, init):
+        return "%s_%s%d" % (name, self.oid, init)
 
     def _make_array_type(self, ndim, cb):
         return C.int if ndim == 1 else C.pointer(self._make_array_type(ndim-1, cb))
@@ -63,7 +63,7 @@ class ArrayCodeGen:
                 i += cb.one
 
     def _gen_fold(self, func, init, name):
-        handle = self._gen_handle(name)
+        handle = self._gen_handle(name, init)
         if handle in self.methods:
             return handle
         self.methods.append(handle)
@@ -112,7 +112,7 @@ class ArrayCodeGen:
         return ret
 
     def _gen_write(self):
-        handle = self._gen_handle("write")
+        handle = self._gen_handle("write", 0)
         if handle in self.methods:
             return handle
         else: 

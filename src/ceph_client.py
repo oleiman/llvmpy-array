@@ -14,7 +14,7 @@ CephArray.config('/home/oren/code/ceph-private/src/ceph.conf', 'some_pool')
 a = CephArray("test", "a1.npy")
 a.write()
 # a = CephArray("foobarbazqux37")
-a.fold(add, 0)
+a.fold(add, 2)
 
 b = CephArray("baz", "a2.npy")
 b.write()

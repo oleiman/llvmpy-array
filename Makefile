@@ -16,7 +16,7 @@ LLVM_LIBS=$(shell llvm-config --libs)
 
 all: llvm_client.so arrays
 
-test: run_server run_client 
+test: run_server run_client
 
 arrays:
 	python $(SRC)/gen_arrays.py
@@ -26,7 +26,7 @@ run_server:
 	$(SERVER)
 run_client:
 	sleep 1
-	$(CLIENT)
+	python $(SRC)/test.py
 
 ceph_client.py: ceph.py 
 
